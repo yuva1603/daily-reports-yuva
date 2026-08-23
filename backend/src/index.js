@@ -154,6 +154,8 @@ function formatReportText(report, recipientName) {
     `---\nAutomated via Daily Reports Platform`;
 }
 
+const isValidUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 // -----------------------------------------------------------------------------
 // CRON SCHEDULER FOR SHIFT REMINDERS
 // -----------------------------------------------------------------------------
@@ -166,7 +168,7 @@ async function triggerUserReminder(userId) {
   let settings;
   let recipients = [];
 
-  if (supabase) {
+  if (supabase && isValidUUID(userId)) {
     const { data: sData } = await supabase.from('shift_settings').select('*').eq('user_id', userId).single();
     const { data: rData } = await supabase.from('recipients').select('*').eq('user_id', userId);
     settings = sData;
@@ -286,7 +288,7 @@ app.post('/api/reports/submit', async (req, res) => {
       created_at: new Date().toISOString()
     };
 
-    if (supabase) {
+    if (supabase && isValidUUID(reportObj.user_id)) {
       const { data, error } = await supabase
         .from('reports')
         .insert([{
@@ -307,7 +309,7 @@ app.post('/api/reports/submit', async (req, res) => {
 
     // Get recipients to notify
     let recipients = [];
-    if (supabase) {
+    if (supabase && isValidUUID(reportObj.user_id)) {
       const { data } = await supabase.from('recipients').select('*').eq('user_id', reportObj.user_id);
       recipients = data || [];
     } else {
@@ -346,7 +348,7 @@ app.get('/api/reports', async (req, res) => {
   try {
     const userId = req.query.userId || 'demo-user-id';
 
-    if (supabase) {
+    if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase
         .from('reports')
         .select('*')
@@ -367,7 +369,7 @@ app.get('/api/reports', async (req, res) => {
 app.get('/api/recipients', async (req, res) => {
   try {
     const userId = req.query.userId || 'demo-user-id';
-    if (supabase) {
+    if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase.from('recipients').select('*').eq('user_id', userId);
       if (error) throw error;
       return res.json(data);
@@ -391,7 +393,7 @@ app.post('/api/recipients', async (req, res) => {
       telegram_enabled: !!telegram_enabled
     };
 
-    if (supabase) {
+    if (supabase && isValidUUID(recipient.user_id)) {
       const { data, error } = await supabase.from('recipients').insert([{
         user_id: recipient.user_id,
         name: recipient.name,
@@ -415,7 +417,7 @@ app.post('/api/recipients', async (req, res) => {
 app.delete('/api/recipients/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    if (supabase) {
+    if (supabase && isValidUUID(id)) {
       const { error } = await supabase.from('recipients').delete().eq('id', id);
       if (error) throw error;
     } else {
@@ -431,7 +433,7 @@ app.delete('/api/recipients/:id', async (req, res) => {
 app.get('/api/settings', async (req, res) => {
   try {
     const userId = req.query.userId || 'demo-user-id';
-    if (supabase) {
+    if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase.from('shift_settings').select('*').eq('user_id', userId).single();
       if (error && error.code !== 'PGRST116') throw error;
       return res.json(data || null);
@@ -453,7 +455,7 @@ app.post('/api/settings', async (req, res) => {
       timezone: timezone || 'Asia/Kolkata'
     };
 
-    if (supabase) {
+    if (supabase && isValidUUID(settingsObj.user_id)) {
       const { data, error } = await supabase
         .from('shift_settings')
         .upsert([settingsObj], { onConflict: 'user_id' })
@@ -488,10 +490,10 @@ app.post('/api/reminders/send', async (req, res) => {
 app.get('/api/profile', async (req, res) => {
   try {
     const userId = req.query.userId || 'demo-user-id';
-    if (supabase) {
+    if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (error && error.code !== 'PGRST116') throw error;
-      return res.json(data || null);
+      return res.json(data || mockStore.profile);
     }
     res.json(mockStore.profile);
   } catch (err) {
@@ -511,7 +513,7 @@ app.post('/api/profile', async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    if (supabase) {
+    if (supabase && isValidUUID(profileObj.id)) {
       const { data, error } = await supabase
         .from('profiles')
         .upsert([profileObj], { onConflict: 'id' })
