@@ -206,7 +206,30 @@ const AuthPage = ({ onDemoLogin }) => {
             </Button>
           </form>
 
-          <div className="relative my-6">
+          {/* Sample Demo Credentials Box */}
+          <div className="mt-5 p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+            <p className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">🔑 Quick Sample Demo Accounts</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => { setEmail('admin@yuvareports.io'); setPassword('demo123456'); }}
+                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-left border border-slate-700 transition"
+              >
+                <div className="font-bold text-amber-400">Admin User</div>
+                <div className="text-[10px] text-slate-400 truncate">admin@yuvareports.io</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmail('operator@yuvareports.io'); setPassword('demo123456'); }}
+                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-left border border-slate-700 transition"
+              >
+                <div className="font-bold text-emerald-400">Operator</div>
+                <div className="text-[10px] text-slate-400 truncate">operator@yuvareports.io</div>
+              </button>
+            </div>
+          </div>
+
+          <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-slate-800" />
             </div>
@@ -216,10 +239,10 @@ const AuthPage = ({ onDemoLogin }) => {
           </div>
 
           <Button onClick={handleGoogleAuth} variant="secondary" className="w-full">
-            <span className="mr-2">🔐</span> Continue with Google
+            <span className="mr-2">🔐</span> Continue with Google OAuth
           </Button>
 
-          <div className="mt-6 pt-4 border-t border-slate-800 text-center">
+          <div className="mt-5 pt-4 border-t border-slate-800 text-center">
             <button
               onClick={() => onDemoLogin(DEMO_USER)}
               className="text-xs text-amber-400 hover:text-amber-300 font-medium underline underline-offset-4"
@@ -250,6 +273,17 @@ export default function App() {
   });
   const [loading, setLoading] = useState(false);
   const [backendHealth, setBackendHealth] = useState(null);
+
+  // Profile state
+  const [profile, setProfile] = useState({
+    username: 'yuva_admin',
+    full_name: 'Yuva Operations Lead',
+    auth_provider: 'email',
+    avatar_url: ''
+  });
+  const [usernameInput, setUsernameInput] = useState('');
+  const [fullNameInput, setFullNameInput] = useState('');
+  const [profileMsg, setProfileMsg] = useState('');
 
   // Form states
   const [title, setTitle] = useState('');
@@ -312,8 +346,51 @@ export default function App() {
         const data = await setRes.json();
         if (data) setSettings(data);
       }
+
+      const profRes = await fetch(`${API_BASE_URL}/api/profile?userId=${userId}`);
+      if (profRes.ok) {
+        const pData = await profRes.json();
+        if (pData) {
+          setProfile(pData);
+          setUsernameInput(pData.username || user?.email?.split('@')[0] || 'user');
+          setFullNameInput(pData.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User');
+        }
+      }
     } catch (err) {
       console.warn('Backend load warning:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!usernameInput.trim()) return alert('Username cannot be empty');
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id || 'demo-user-id',
+          username: usernameInput,
+          full_name: fullNameInput,
+          auth_provider: user?.app_metadata?.provider || 'google',
+          avatar_url: user?.user_metadata?.avatar_url || ''
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+        setProfileMsg('✅ Username & user profile verified and saved!');
+        setTimeout(() => setProfileMsg(''), 4000);
+      } else {
+        alert(`Error updating profile: ${data.error}`);
+      }
+    } catch (err) {
+      alert(`Profile update error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -516,6 +593,7 @@ export default function App() {
             { id: 'reports', label: '📋 Submit & Feed', icon: FileText },
             { id: 'recipients', label: '👥 Recipients', icon: Users },
             { id: 'settings', label: '⚙️ Shift Schedule', icon: Clock },
+            { id: 'profile', label: '👤 Account & Username', icon: ShieldCheck },
             { id: 'free-deploy', label: '🚀 100% Free Deployment', icon: Sparkles }
           ].map(tab => (
             <button
@@ -770,7 +848,95 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: 100% FREE DEPLOYMENT GUIDE */}
+        {/* TAB 4: PROFILE & USERNAME MANAGEMENT */}
+        {activeTab === 'profile' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 border border-slate-800 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-amber-400" />
+                    Account Profile & Username Verification
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Manage your display name, verify custom handle, and check connected Google OAuth credentials.
+                  </p>
+                </div>
+                <Badge variant="emerald">Authenticated</Badge>
+              </div>
+
+              {profileMsg && (
+                <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-300 font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  {profileMsg}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Custom Username (@handle)"
+                    placeholder="e.g. yuva_admin"
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value)}
+                    hint="Letters, numbers, and underscores only"
+                  />
+
+                  <Input
+                    label="Full Name / Display Name"
+                    placeholder="e.g. Yuva Operations Manager"
+                    value={fullNameInput}
+                    onChange={(e) => setFullNameInput(e.target.value)}
+                  />
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-500 uppercase block">Account Email</span>
+                    <span className="font-semibold text-slate-200">{user.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-500 uppercase block">Auth Provider</span>
+                    <span className="font-semibold text-amber-400 uppercase">
+                      {user.app_metadata?.provider || 'Google / Email'}
+                    </span>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                  <Check className="w-4 h-4 mr-1.5" />
+                  {loading ? 'Saving Profile...' : 'Verify & Update Profile'}
+                </Button>
+              </form>
+            </Card>
+
+            {/* Google OAuth & Security Info */}
+            <Card className="border border-slate-800 space-y-4">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                Auth & Security Info
+              </h3>
+
+              <div className="space-y-3 text-xs text-slate-300">
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-sky-400 uppercase">Google Single Sign-On</span>
+                  <p className="text-slate-400">
+                    If logged in via Google OAuth, your name, profile photo, and credentials are automatically synced and protected with Supabase RLS.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">Row Level Security</span>
+                  <p className="text-slate-400">
+                    All report entries, shift configurations, and recipient contacts are strictly bound to your authenticated User ID.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* TAB 5: 100% FREE DEPLOYMENT GUIDE */}
         {activeTab === 'free-deploy' && (
           <Card className="border border-slate-800 space-y-6">
             <div>

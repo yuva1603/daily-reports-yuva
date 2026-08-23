@@ -71,6 +71,13 @@ const mockStore = {
     reminder_minutes_before: 30,
     timezone: 'Asia/Kolkata'
   },
+  profile: {
+    id: 'demo-user-id',
+    username: 'yuva_admin',
+    full_name: 'Yuva (Demo Mode)',
+    auth_provider: 'google',
+    avatar_url: ''
+  },
   reminders: []
 };
 
@@ -472,6 +479,51 @@ app.post('/api/reminders/send', async (req, res) => {
     const userId = req.body.userId || 'demo-user-id';
     const results = await triggerUserReminder(userId);
     res.json({ success: true, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 7. Profile & Username Management
+app.get('/api/profile', async (req, res) => {
+  try {
+    const userId = req.query.userId || 'demo-user-id';
+    if (supabase) {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return res.json(data || null);
+    }
+    res.json(mockStore.profile);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/profile', async (req, res) => {
+  try {
+    const { userId, username, full_name, avatar_url, auth_provider } = req.body;
+    const profileObj = {
+      id: userId || 'demo-user-id',
+      username: username ? username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '') : 'user',
+      full_name: full_name || 'User',
+      avatar_url: avatar_url || '',
+      auth_provider: auth_provider || 'email',
+      updated_at: new Date().toISOString()
+    };
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert([profileObj], { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return res.json({ success: true, profile: data });
+    }
+
+    mockStore.profile = { ...mockStore.profile, ...profileObj };
+    res.json({ success: true, profile: mockStore.profile });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
