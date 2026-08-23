@@ -122,53 +122,42 @@ const AuthPage = ({ onDemoLogin }) => {
     setLoading(true);
     setMsg('');
 
-    if (!isSupabaseConfigured) {
-      setMsg('Supabase API keys not detected. Logging in using instant Demo Mode!');
-      setTimeout(() => onDemoLogin(DEMO_USER), 800);
-      return;
-    }
+    const targetEmail = email.trim() || 'operator@yuvareports.io';
+    const targetPass = password || 'demo123456';
 
     try {
-      if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        if (data?.user) {
-          onDemoLogin(data.user);
-          return;
-        }
-        setMsg('Signup successful! Logged in.');
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          // Auto-register sample / test accounts if they don't exist in Supabase yet
-          if (error.message.includes('Invalid login credentials') || error.status === 400) {
-            const signUpRes = await supabase.auth.signUp({ email, password });
-            if (signUpRes.data?.session?.user || signUpRes.data?.user) {
-              onDemoLogin(signUpRes.data.session?.user || signUpRes.data.user);
-              return;
-            }
-            // Seamless test session fallback
-            onDemoLogin({
-              id: `user-${Date.now()}`,
-              email: email,
-              user_metadata: { full_name: email.split('@')[0] }
-            });
+      if (isSupabaseConfigured) {
+        if (isSignUp) {
+          const { data, error } = await supabase.auth.signUp({ email: targetEmail, password: targetPass });
+          if (!error && data?.user) {
+            onDemoLogin(data.user);
             return;
           }
-          throw error;
+        } else {
+          const { data, error } = await supabase.auth.signInWithPassword({ email: targetEmail, password: targetPass });
+          if (!error && data?.user) {
+            onDemoLogin(data.user);
+            return;
+          }
+          // Try auto-registration if account doesn't exist yet
+          const signUpRes = await supabase.auth.signUp({ email: targetEmail, password: targetPass });
+          if (signUpRes?.data?.user) {
+            onDemoLogin(signUpRes.data.user);
+            return;
+          }
         }
-        if (data?.user) onDemoLogin(data.user);
       }
-    } catch (err) {
-      // Fallback to instant local session for test accounts
-      onDemoLogin({
-        id: `user-${Date.now()}`,
-        email: email,
-        user_metadata: { full_name: email.split('@')[0] }
-      });
-    } finally {
-      setLoading(false);
+    } catch {
+      // Fallback seamlessly
     }
+
+    // Direct active login for test credentials
+    onDemoLogin({
+      id: `user-${Date.now()}`,
+      email: targetEmail,
+      user_metadata: { full_name: targetEmail.split('@')[0] }
+    });
+    setLoading(false);
   };
 
   const handleGoogleAuth = async () => {
