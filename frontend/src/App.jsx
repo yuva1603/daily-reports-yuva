@@ -64,7 +64,7 @@ const Button = ({ children, onClick, variant = 'primary', size = 'md', className
   );
 };
 
-const Input = ({ label, placeholder, value, onChange, type = 'text', hint = '', className = '' }) => (
+const Input = ({ label, placeholder, value, onChange, type = 'text', hint = '', className = '', autoComplete }) => (
   <div className="w-full space-y-1.5">
     {label && <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">{label}</label>}
     <input
@@ -72,6 +72,7 @@ const Input = ({ label, placeholder, value, onChange, type = 'text', hint = '', 
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      autoComplete={autoComplete || (type === 'password' ? 'current-password' : type === 'email' ? 'username' : 'on')}
       className={`w-full px-4 py-2.5 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none text-sm transition ${className}`}
     />
     {hint && <p className="text-xs text-slate-400">{hint}</p>}
@@ -235,22 +236,38 @@ const AuthPage = ({ onDemoLogin }) => {
 
           {/* Sample Demo Credentials Box */}
           <div className="mt-5 p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <p className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">🔑 Quick Sample Demo Accounts</p>
+            <p className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">🔑 Quick Sample Demo Accounts (1-Click Login)</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => { setEmail('admin@yuvareports.io'); setPassword('demo123456'); }}
-                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-left border border-slate-700 transition"
+                onClick={() => {
+                  setEmail('admin@yuvareports.io');
+                  setPassword('demo123456');
+                  onDemoLogin({
+                    id: 'admin-sample-id',
+                    email: 'admin@yuvareports.io',
+                    user_metadata: { full_name: 'Yuva Admin' }
+                  });
+                }}
+                className="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-left border border-slate-700 transition active:scale-95"
               >
-                <div className="font-bold text-amber-400">Admin User</div>
+                <div className="font-bold text-amber-400">⚡ Admin User</div>
                 <div className="text-[10px] text-slate-400 truncate">admin@yuvareports.io</div>
               </button>
               <button
                 type="button"
-                onClick={() => { setEmail('operator@yuvareports.io'); setPassword('demo123456'); }}
-                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-left border border-slate-700 transition"
+                onClick={() => {
+                  setEmail('operator@yuvareports.io');
+                  setPassword('demo123456');
+                  onDemoLogin({
+                    id: 'operator-sample-id',
+                    email: 'operator@yuvareports.io',
+                    user_metadata: { full_name: 'Shift Operator' }
+                  });
+                }}
+                className="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-left border border-slate-700 transition active:scale-95"
               >
-                <div className="font-bold text-emerald-400">Operator</div>
+                <div className="font-bold text-emerald-400">⚡ Operator</div>
                 <div className="text-[10px] text-slate-400 truncate">operator@yuvareports.io</div>
               </button>
             </div>
