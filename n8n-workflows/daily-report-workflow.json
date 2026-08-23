@@ -1,0 +1,69 @@
+{
+  "name": "Daily Report Shift Reminder & WhatsApp Dispatcher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Shift Reminder Trigger (Daily at 5:30 PM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT r.name, r.phone_number, s.shift_end, s.reminder_minutes_before FROM recipients r JOIN shift_settings s ON r.user_id = s.user_id WHERE r.whatsapp_enabled = true;"
+      },
+      "id": "2",
+      "name": "Supabase Query Active Recipients",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "from": "whatsapp:+14155238886",
+        "to": "=whatsapp:{{ $json.phone_number }}",
+        "message": "=⏰ *Daily Report Reminder*\n\nHi {{ $json.name }},\nYour shift ends in {{ $json.reminder_minutes_before }} minutes!\nPlease submit your daily report."
+      },
+      "id": "3",
+      "name": "Twilio WhatsApp Dispatch",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Shift Reminder Trigger (Daily at 5:30 PM)": {
+      "main": [
+        [
+          {
+            "node": "Supabase Query Active Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Query Active Recipients": {
+      "main": [
+        [
+          {
+            "node": "Twilio WhatsApp Dispatch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
