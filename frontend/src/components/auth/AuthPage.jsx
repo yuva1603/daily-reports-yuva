@@ -8,7 +8,7 @@ export const AuthPage = ({ onLogin }) => {
   const [authMode, setAuthMode] = useState('otp'); // 'otp' | 'password' | 'signup'
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('Senior Engineer AI & Automation');
-  const [email, setEmail] = useState('yuvaraj@company.io');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -240,11 +240,11 @@ export const AuthPage = ({ onLogin }) => {
                 <Input
                   label="Registered Mobile (WhatsApp) or Work Email"
                   type="text"
-                  placeholder="e.g. +917358859792 or yuvaraj@company.io"
+                  placeholder="Enter the email id or mobile number"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={otpSent}
-                  hint={otpSent ? '' : 'Enter your registered mobile or work email'}
+                  hint={otpSent ? '' : 'Enter your registered email id or mobile number'}
                 />
 
                 {otpSent && (
@@ -297,7 +297,7 @@ export const AuthPage = ({ onLogin }) => {
 
                   <Input
                     label="Full Name"
-                    placeholder="e.g. Yuvaraj"
+                    placeholder="Enter your full name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                   />
@@ -332,7 +332,7 @@ export const AuthPage = ({ onLogin }) => {
               <Input
                 label="Work Email Address"
                 type="email"
-                placeholder="e.g. yuvaraj@company.io"
+                placeholder="Enter the email id"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
