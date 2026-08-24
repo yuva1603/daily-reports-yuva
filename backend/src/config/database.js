@@ -19,10 +19,10 @@ const mockStore = {
   reports: [
     {
       id: 'rep-demo-1',
-      user_id: 'demo-user-id',
+      user_id: 'usr-admin-master',
       type: 'Daily Shift Report',
-      author_name: 'Yuvaraj',
-      author_role: 'Senior Engineer AI & Automation',
+      author_name: 'Yuvaraj (Chief Admin)',
+      author_role: 'Chief Systems & Operations Administrator',
       title: 'Morning Shift Handover & Line-1 Calibration',
       content: 'Line 1 completed morning run with 99.2% efficiency. Routine maintenance performed on sensor array.',
       tags: ['production', 'maintenance', 'handover'],
@@ -45,32 +45,63 @@ const mockStore = {
   reminders: [],
   users: [
     {
-      id: 'usr-1',
+      id: 'usr-admin-master',
+      name: 'Yuvaraj (Chief Admin)',
+      email: 'admin@dailyreports.hub',
+      password: 'YuvaAdmin#2026',
+      role: 'Chief Systems & Operations Administrator',
+      phone: '917358859792',
+      is_admin: true,
+      created_at: '2026-08-24T00:00:00Z'
+    },
+    {
+      id: 'usr-yuva-personal',
       name: 'Yuvaraj',
       email: 'yuvaraj@company.io',
+      password: 'YuvaAdmin#2026',
       role: 'Senior Engineer AI & Automation',
       phone: '917358859792',
       is_admin: true,
       created_at: '2026-08-24T00:00:00Z'
     },
     {
-      id: 'usr-admin',
-      name: 'Operations Admin',
+      id: 'usr-admin-alt',
+      name: 'System Administrator',
       email: 'admin@company.io',
+      password: 'YuvaAdmin#2026',
       role: 'System Administrator',
       is_admin: true,
-      created_at: '2026-08-24T00:00:00Z'
-    },
-    {
-      id: 'usr-3',
-      name: 'Alex Chen',
-      email: 'alex@company.io',
-      role: 'Shift Supervisor',
-      is_admin: false,
       created_at: '2026-08-24T00:00:00Z'
     }
   ]
 };
+
+// Auto-seed Super Admin into Supabase DB Table on startup
+async function seedAdminCredentials() {
+  if (supabase) {
+    try {
+      for (const u of mockStore.users) {
+        await supabase.from('user_credentials').upsert([{
+          username: u.email.split('@')[0],
+          name: u.name,
+          full_name: u.name,
+          email: u.email,
+          password: u.password,
+          role: u.role,
+          phone_number: u.phone,
+          is_admin: u.is_admin,
+          last_login_at: new Date().toISOString()
+        }], { onConflict: 'email' });
+      }
+      console.log('👑 Super Administrator credentials synced into Supabase DB.');
+    } catch (err) {
+      console.warn('Supabase admin seed notice:', err.message);
+    }
+  }
+}
+
+// Trigger admin seed
+seedAdminCredentials();
 
 function isValidUUID(str) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
@@ -79,5 +110,6 @@ function isValidUUID(str) {
 module.exports = {
   supabase,
   mockStore,
-  isValidUUID
+  isValidUUID,
+  seedAdminCredentials
 };
