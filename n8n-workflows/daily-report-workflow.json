@@ -1,0 +1,164 @@
+{
+  "name": "Daily Report Reminder Workflow (Personal WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Shift Reminder Trigger (Daily at 5:30 PM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Fires daily at 5:30 PM IST. Adjust cron to match your shift_end time."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3000/api/reminders/send",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "demo-user-id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "Trigger Shift Reminder (via Backend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "notes": "Calls our Node.js backend which sends WhatsApp via whatsapp-web.js (personal account, 100% free)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3000/api/reports/submit",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "demo-user-id"
+            },
+            {
+              "name": "title",
+              "value": "=Auto-Reminder Sent - {{ $now.toISODate() }}"
+            },
+            {
+              "name": "content",
+              "value": "=Shift reminder dispatched at {{ $now.toISO() }} via n8n workflow. Recipients notified on WhatsApp."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Log to Backend (Optional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, 200],
+      "notes": "Optionally log the reminder dispatch as a report entry"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [750, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "console.error('Daily Report Reminder FAILED:', $input.first().json);\nreturn [{ json: { error: $input.first().json, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "6",
+      "name": "Log Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 500]
+    }
+  ],
+  "connections": {
+    "Shift Reminder Trigger (Daily at 5:30 PM)": {
+      "main": [
+        [
+          {
+            "node": "Trigger Shift Reminder (via Backend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Shift Reminder (via Backend)": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Log to Backend (Optional)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "notes": "Daily Report Reminder Workflow (Personal WhatsApp via whatsapp-web.js)\n\nFlow:\n1. Cron triggers daily at 5:30 PM IST\n2. Calls POST /api/reminders/send on your Node.js backend\n3. Backend sends WhatsApp from your personal account (FREE - no API cost)\n4. Checks success, optionally logs entry\n\nSetup:\n- Make sure backend is running: node src/index.js (in /backend folder)\n- Make sure WhatsApp is connected (QR scanned once)\n- Adjust cron time to match your shift end\n- Import this file into n8n and activate the workflow"
+}

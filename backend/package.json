@@ -1,0 +1,36 @@
+{
+  "name": "daily-reports-backend",
+  "version": "1.0.0",
+  "description": "Backend API & Reminder Scheduler for Daily Reports Automation App",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^9.0.5",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  },
+  "keywords": [
+    "daily-reports",
+    "automation",
+    "whatsapp",
+    "whatsapp-web.js",
+    "render",
+    "supabase"
+  ],
+  "author": "Daily Reports Team",
+  "license": "MIT",
+  "allowScripts": {
+    "puppeteer@24.38.0": true
+  }
+}

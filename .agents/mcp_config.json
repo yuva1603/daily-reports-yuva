@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "n8n": {
+      "serverUrl": "http://localhost:5678/mcp-server/http"
+    },
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "@gannonh/firebase-mcp"]
+    }
+  }
+}

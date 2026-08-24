@@ -1,0 +1,235 @@
+{
+  "name": "Daily Report Reminder Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "type": "hours",
+              "value": 24
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Triggers daily at configured time"
+    },
+    {
+      "parameters": {
+        "resource": "recordTable",
+        "operation": "read",
+        "baseId": "{{ $env.SUPABASE_URL }}",
+        "tableName": "shift_settings",
+        "filterType": "manual",
+        "filterByTables": {}
+      },
+      "id": "2",
+      "name": "Get Shift Settings",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "recordTable",
+        "operation": "read",
+        "baseId": "{{ $env.SUPABASE_URL }}",
+        "tableName": "recipients",
+        "filterType": "manual",
+        "filterByTables": {
+          "user_id": "{{ $node[\"Get Shift Settings\"].json.user_id }}",
+          "whatsapp_enabled": true
+        }
+      },
+      "id": "3",
+      "name": "Get Recipients",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const recipients = $input.all();\nconst messages = recipients.map(r => ({\n  name: r.json.name,\n  phone: r.json.phone_number,\n  message: `⏰ Daily Report Reminder\\n\\nHi ${r.json.name},\\n\\nIt's time to submit your daily report before shift ends!\\n\\nPlease log in and submit your report now.`\n}));\nreturn messages;"
+      },
+      "id": "4",
+      "name": "Format Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "toNumber": "={{ $node[\"Format Messages\"].json.phone }}",
+        "messageText": "={{ $node[\"Format Messages\"].json.message }}"
+      },
+      "id": "5",
+      "name": "Send WhatsApp via Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ],
+      "credentials": {
+        "twilioApi": "Twilio"
+      },
+      "description": "Sends WhatsApp message to each recipient"
+    },
+    {
+      "parameters": {
+        "resource": "recordTable",
+        "operation": "create",
+        "baseId": "{{ $env.SUPABASE_URL }}",
+        "tableName": "report_reminders",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $node[\"Get Shift Settings\"].json.user_id }}"
+            },
+            {
+              "fieldId": "scheduled_time",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "sent_at",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "sent"
+            }
+          ]
+        }
+      },
+      "id": "6",
+      "name": "Log Reminder Sent",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        300
+      ],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "7",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "{{ $env.SLACK_CHANNEL }}",
+        "text": "❌ Daily Report Reminder Failed\\n\\nError: {{ $node[\"Error Handler\"].json.errorMessage }}"
+      },
+      "id": "8",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        500
+      ],
+      "credentials": {
+        "slackApi": "Slack"
+      },
+      "onError": "continueErrorHandling"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Shift Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Shift Settings": {
+      "main": [
+        [
+          {
+            "node": "Get Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recipients": {
+      "main": [
+        [
+          {
+            "node": "Format Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Messages": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp via Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp via Twilio": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "notes": "Daily Report Reminder Workflow\n\nThis n8n workflow automates sending daily report reminders via WhatsApp.\n\nFlow:\n1. Cron trigger fires daily at scheduled time\n2. Fetch all shift settings from Supabase\n3. Get recipients for that user (filtered by whatsapp_enabled=true)\n4. Format reminder messages for each recipient\n5. Send WhatsApp messages via Twilio\n6. Log reminder sent status in database\n7. On error, notify via Slack\n\nSetup Instructions:\n- Create Supabase, Twilio, and Slack credentials in n8n\n- Set environment variables: SUPABASE_URL, TWILIO_ACCOUNT_SID, SLACK_CHANNEL\n- Deploy to n8n Cloud or self-hosted instance\n- Activate the workflow"
+}
