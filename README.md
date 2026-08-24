@@ -1,105 +1,97 @@
 # 📊 Daily Reports Automation App (`daily-reports-yuva`)
 
-An end-to-end, automated shift reporting system designed for production, maintenance, and operation teams. Built with React (Vite + Tailwind CSS), Node.js (Express + `node-schedule`), Supabase PostgreSQL, and automated messaging via Twilio WhatsApp & Telegram Bot API.
+An end-to-end, automated shift reporting system designed for production, maintenance, and operations teams. Built with React (Vite + Tailwind CSS), Node.js (Express + `whatsapp-web.js` + `node-schedule`), Firebase Authentication, Supabase PostgreSQL, and automated messaging via personal WhatsApp & n8n.
 
 ---
 
 ## 🌟 Key Features
 
-* **⚡ Express Shift Reporting**: Form for submitting shift summaries, quality metrics, and maintenance notes with tag support.
-* **📲 Multi-Channel Notifications**: Automatically dispatches submitted reports to designated managers via WhatsApp and Telegram.
-* **⏰ Automated Shift Reminders**: In-app background scheduler calculates daily trigger times based on shift end windows and notifies team members.
-* **🔐 Supabase Auth & RLS**: Secure user authentication and Row Level Security data isolation.
-* **💡 Demo / Mock Storage Mode**: Runs out-of-the-box in offline demo mode even without third-party API keys configured.
-* **🚀 100% Free Hosting Ready**: Complete guide and support for deploying on Supabase (DB), Render.com (Backend), and Vercel (Frontend).
+* **⚡ Express Shift Reporting**: Form for submitting shift summaries, quality metrics, and maintenance notes with dynamic author & job role customization per report.
+* **📲 Personal WhatsApp Automation**: Dispatches submitted reports and shift reminders directly via personal WhatsApp Web and 1-Click WhatsApp modal.
+* **🔥 Firebase Authentication**: Secure sign-in with Email & Password, Passwordless Sign-In Link, and real Email Verification (`sendEmailVerification`).
+* **👁️ Password Visibility & Match Verification**: Eye icon toggle (`Eye / EyeOff`) and Confirm Password verification on registration.
+* **⏰ Automated Shift Reminders**: Background scheduler (`node-schedule`) triggers daily reminders prior to shift closure.
+* **🛡️ Full MVC Architecture**: Cleanly separated Controllers, Services, Models, Routes, and View Components for both Frontend and Backend.
+* **📊 Admin & Reporting Dashboard**: Overview of team members, total reports, daily activity, and global shift streams.
 
 ---
 
-## 🛠️ Tech Stack
-
-### Frontend
-- **Framework**: React 18 + Vite + TypeScript / JSX
-- **Styling**: Tailwind CSS (Dark Glassmorphism Theme)
-- **Icons**: Lucide React
-- **Client**: Supabase JS Client
-
-### Backend
-- **Server**: Node.js + Express.js
-- **Scheduler**: `node-schedule` (Cron Engine)
-- **Integrations**: Twilio WhatsApp API, Telegram Bot API, Supabase SDK
-
-### Database & Automation
-- **Database**: Supabase (PostgreSQL with RLS & Indexes)
-- **No-Code Automation**: n8n Workflow (`n8n-workflows/daily-report-workflow.json`)
-
----
-
-## 📁 Repository Structure
+## 📁 Modular MVC Architecture
 
 ```
-daily-reports-yuva/
-├── backend/            # Express backend & reminder scheduler
-│   ├── src/index.js    # API routes, messaging helpers & cron scheduler
+daily-reports-yuva-main/
+├── backend/
+│   ├── src/
+│   │   ├── config/              # Database (Supabase & in-memory store)
+│   │   │   └── database.js
+│   │   ├── controllers/         # Request handlers
+│   │   │   ├── authController.js
+│   │   │   ├── reportsController.js
+│   │   │   ├── recipientController.js
+│   │   │   ├── settingsController.js
+│   │   │   └── adminController.js
+│   │   ├── routes/              # Express API route definitions
+│   │   │   ├── authRoutes.js
+│   │   │   ├── reportsRoutes.js
+│   │   │   ├── recipientRoutes.js
+│   │   │   ├── settingsRoutes.js
+│   │   │   ├── adminRoutes.js
+│   │   │   └── whatsappRoutes.js
+│   │   ├── services/            # WhatsApp & Scheduler services
+│   │   │   ├── whatsappService.js
+│   │   │   └── reminderScheduler.js
+│   │   └── index.js             # Clean Express application entry point
 │   └── package.json
-├── frontend/           # Vite React UI
-│   ├── src/            # App.jsx, index.css, main.jsx
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/                 # Client API services (Fetch & Firebase)
+│   │   │   ├── apiClient.js
+│   │   │   ├── authService.js
+│   │   │   ├── reportsService.js
+│   │   │   └── recipientService.js
+│   │   ├── components/          # Reusable Views & Feature Tabs
+│   │   │   ├── common/index.jsx # Card, Button, Input, PasswordInput, Badge
+│   │   │   ├── auth/AuthPage.jsx
+│   │   │   ├── reports/ReportSubmitForm.jsx
+│   │   │   ├── reports/ReportsFeed.jsx
+│   │   │   ├── reports/WhatsAppModal.jsx
+│   │   │   ├── recipient/RecipientTab.jsx
+│   │   │   ├── settings/ShiftScheduleTab.jsx
+│   │   │   ├── profile/ProfileTab.jsx
+│   │   │   └── admin/AdminDashboardTab.jsx
+│   │   ├── utils/formatters.js  # Formatters & Validators
+│   │   ├── firebase.js          # Firebase SDK Configuration
+│   │   └── App.jsx              # Main View Router & State Orchestrator
 │   └── package.json
-├── database/           # Supabase DDL SQL schema
-│   └── schema.sql
-├── n8n-workflows/      # Importable n8n workflow definition
-│   └── daily-report-workflow.json
-└── files (1)/          # Detailed documentation & setup guides
-    ├── QUICK_START.md
-    ├── DEPLOYMENT_GUIDE.md
-    ├── API_REFERENCE.md
-    └── DAILY_REPORTS_STACK_GUIDE.md
+│
+├── database/
+│   └── schema.sql               # Supabase PostgreSQL schema
+└── n8n-workflows/
+    └── daily-report-workflow.json # n8n automated reporting workflow
 ```
 
 ---
 
 ## 🚀 Quick Start (Local Setup)
 
-### 1. Clone & Install Dependencies
-
-```bash
-git clone https://github.com/yuva1603/daily-reports-yuva.git
-cd daily-reports-yuva
-
-# Backend setup
-cd backend
-npm install
-
-# Frontend setup
-cd ../frontend
-npm install
-```
-
-### 2. Start Backend Server
-
+### 1. Backend Server
 ```bash
 cd backend
-npm run dev
-# Running at http://localhost:3000
+npm install
+npm start
 ```
+*Backend runs on `http://localhost:3000` (Health Check: `/health`)*
 
-### 3. Start Frontend App
-
+### 2. Frontend Application
 ```bash
 cd frontend
+npm install
 npm run dev
-# Running at http://localhost:5173
 ```
+*Frontend runs on `http://localhost:5173`*
 
----
-
-## 📄 Database Setup (Supabase)
-
-1. Open your project on [Supabase](https://supabase.com).
-2. Navigate to **SQL Editor**.
-3. Copy & paste the contents of [`database/schema.sql`](database/schema.sql) and click **Run**.
-
----
-
-## 📝 License
-
-Licensed under the [MIT License](LICENSE).
+### 3. WhatsApp Integration
+1. Open the terminal running the backend.
+2. Scan the generated QR code in WhatsApp (*WhatsApp -> Settings -> Linked Devices -> Link a Device*).
+3. All shift reports and automated reminders will be delivered directly!
