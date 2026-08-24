@@ -16,32 +16,9 @@ if (!hasSupabaseKeys) {
 }
 
 const mockStore = {
-  reports: [
-    {
-      id: 'rep-demo-1',
-      user_id: 'usr-admin-master',
-      type: 'Daily Shift Report',
-      author_name: 'Yuvaraj (Chief Admin)',
-      author_role: 'Chief Systems & Operations Administrator',
-      title: 'Morning Shift Handover & Line-1 Calibration',
-      content: 'Line 1 completed morning run with 99.2% efficiency. Routine maintenance performed on sensor array.',
-      tags: ['production', 'maintenance', 'handover'],
-      date: '2026-08-24',
-      time: '09:30',
-      created_at: new Date().toISOString()
-    }
-  ],
-  recipient: {
-    name: 'Shift Supervisor',
-    phone_number: '917358859792',
-    whatsapp_enabled: true
-  },
-  shift_settings: {
-    shift_start: '09:00',
-    shift_end: '18:00',
-    reminder_minutes_before: 30,
-    timezone: 'Asia/Kolkata'
-  },
+  reports: [],
+  recipients: {}, // keyed by userId -> { user_id, name, phone_number, whatsapp_enabled, updated_at }
+  shift_settings: {}, // keyed by userId -> { user_id, shift_start, shift_end, reminder_minutes_before, timezone, enabled }
   reminders: [],
   users: [
     {

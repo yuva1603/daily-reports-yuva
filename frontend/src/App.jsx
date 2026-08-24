@@ -29,12 +29,10 @@ export default function App() {
     timezone: 'Asia/Kolkata'
   });
   const [profile, setProfile] = useState({
-    name: 'Yuvaraj',
-    role: 'Senior Engineer AI & Automation',
+    name: '',
+    role: '',
     email: ''
   });
-
-  // Direct WhatsApp Modal State
   const [waModal, setWaModal] = useState({
     isOpen: false,
     report: null,
@@ -68,25 +66,31 @@ export default function App() {
 
   // Fetch initial data when user logs in
   useEffect(() => {
-    if (user) {
-      const uName = user.name || user.full_name || 'Yuvaraj';
+    if (user && user.id) {
+      const uName = user.name || user.full_name || user.email?.split('@')[0] || 'Team Member';
       const uRole = user.role || 'Senior Engineer AI & Automation';
       setProfile({ name: uName, role: uRole, email: user.email || '' });
-      loadUserData();
+      loadUserData(user.id);
+    } else {
+      setReports([]);
+      setRecipient(null);
+      setProfile({ name: '', role: '', email: '' });
     }
   }, [user]);
 
-  const loadUserData = async () => {
+  const loadUserData = async (currentUserId) => {
+    const targetId = currentUserId || user?.id;
+    if (!targetId) return;
+
     try {
-      const userId = user?.id || 'demo-user-id';
       const [userReports, recData, settData] = await Promise.all([
-        reportsService.getReports(userId).catch(() => []),
-        recipientService.getRecipient(userId).catch(() => null),
-        settingsService.getSettings(userId).catch(() => null)
+        reportsService.getReports(targetId).catch(() => []),
+        recipientService.getRecipient(targetId).catch(() => null),
+        settingsService.getSettings(targetId).catch(() => null)
       ]);
 
-      if (userReports) setReports(userReports);
-      if (recData) setRecipient(recData);
+      setReports(Array.isArray(userReports) ? userReports : []);
+      setRecipient(recData || null);
       if (settData) setSettings(settData);
     } catch (err) {
       console.error('Error loading user data:', err);
@@ -96,6 +100,16 @@ export default function App() {
   const handleLogout = async () => {
     await authService.logout();
     setUser(null);
+    setReports([]);
+    setRecipient(null);
+    setProfile({ name: '', role: '', email: '' });
+    setSettings({
+      shift_start: '09:00',
+      shift_end: '18:00',
+      reminder_minutes_before: 30,
+      timezone: 'Asia/Kolkata',
+      enabled: false
+    });
     setActiveTab('reports');
   };
 

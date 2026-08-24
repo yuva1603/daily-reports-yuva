@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, User } from 'lucide-react';
 import { Card, Button, Input } from '../common';
 import { settingsService } from '../../api/recipientService';
 
 export const ProfileTab = ({ profile, setProfile, user, setUser }) => {
-  const [name, setName] = useState(profile?.name || user?.name || 'Yuvaraj');
-  const [role, setRole] = useState(profile?.role || user?.role || 'Senior Engineer AI & Automation');
+  const [name, setName] = useState(profile?.name || user?.name || '');
+  const [role, setRole] = useState(profile?.role || user?.role || '');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setName(profile?.name || user?.name || '');
+    setRole(profile?.role || user?.role || '');
+  }, [user, profile]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();

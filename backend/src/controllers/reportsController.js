@@ -23,6 +23,10 @@ function formatReportText(report, recipientName) {
 exports.getReports = async (req, res) => {
   try {
     const { userId } = req.query;
+    if (!userId) {
+      return res.json([]);
+    }
+
     if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase
         .from('reports')
@@ -34,8 +38,9 @@ exports.getReports = async (req, res) => {
       return res.json(data || []);
     }
 
-    const filtered = mockStore.reports.filter(r => !userId || r.user_id === userId || userId === 'demo-user-id');
-    res.json(filtered.reverse());
+    // Isolate by userId strictly
+    const filtered = mockStore.reports.filter(r => r.user_id === userId);
+    res.json(filtered.slice().reverse());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

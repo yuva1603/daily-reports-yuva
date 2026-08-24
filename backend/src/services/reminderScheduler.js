@@ -5,20 +5,21 @@ const { sendWhatsAppMessage } = require('./whatsappService');
 const scheduledJobs = new Map();
 
 async function getSingleRecipient(userId) {
+  if (!userId) return null;
   if (supabase && isValidUUID(userId)) {
-    const { data } = await supabase.from('recipients').select('*').eq('user_id', userId).single();
+    const { data } = await supabase.from('recipients').select('*').eq('user_id', userId).maybeSingle();
     return data;
   }
-  return mockStore.recipient;
+  return mockStore.recipients[userId] || null;
 }
 
 async function triggerUserReminder(userId) {
   let settings;
   if (supabase && isValidUUID(userId)) {
-    const { data } = await supabase.from('shift_settings').select('*').eq('user_id', userId).single();
+    const { data } = await supabase.from('shift_settings').select('*').eq('user_id', userId).maybeSingle();
     settings = data;
   } else {
-    settings = mockStore.shift_settings;
+    settings = mockStore.shift_settings[userId];
   }
 
   if (!settings) {
@@ -62,10 +63,10 @@ async function triggerUserReminder(userId) {
 async function scheduleUserReminders(userId) {
   let settings;
   if (supabase && isValidUUID(userId)) {
-    const { data } = await supabase.from('shift_settings').select('*').eq('user_id', userId).single();
+    const { data } = await supabase.from('shift_settings').select('*').eq('user_id', userId).maybeSingle();
     settings = data;
   } else {
-    settings = mockStore.shift_settings;
+    settings = mockStore.shift_settings[userId];
   }
 
   if (!settings || !settings.shift_end) return;

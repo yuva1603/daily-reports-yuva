@@ -3,17 +3,24 @@ const { supabase, mockStore, isValidUUID } = require('../config/database');
 exports.getRecipient = async (req, res) => {
   try {
     const { userId } = req.query;
+    if (!userId) {
+      return res.json(null);
+    }
+
     if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase
         .from('recipients')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       return res.json(data || null);
     }
-    res.json(mockStore.recipient);
+
+    // In-memory isolated lookup by userId
+    const userRecipient = mockStore.recipients[userId] || null;
+    res.json(userRecipient);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -25,9 +32,13 @@ exports.saveRecipient = async (req, res) => {
     if (!name || !phone_number) {
       return res.status(400).json({ error: 'Name and phone number are required' });
     }
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
 
     const recipientObj = {
-      name,
+      user_id: userId,
+      name: name.trim(),
       phone_number: phone_number.replace(/\D/g, ''),
       whatsapp_enabled: whatsapp_enabled !== undefined ? whatsapp_enabled : true,
       updated_at: new Date().toISOString()
@@ -36,7 +47,7 @@ exports.saveRecipient = async (req, res) => {
     if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase
         .from('recipients')
-        .upsert([{ user_id: userId, ...recipientObj }], { onConflict: 'user_id' })
+        .upsert([recipientObj], { onConflict: 'user_id' })
         .select()
         .single();
 
@@ -44,8 +55,9 @@ exports.saveRecipient = async (req, res) => {
       return res.json({ success: true, recipient: data });
     }
 
-    mockStore.recipient = { user_id: userId || 'demo-user-id', ...recipientObj };
-    res.json({ success: true, recipient: mockStore.recipient });
+    // In-memory isolated storage by userId
+    mockStore.recipients[userId] = recipientObj;
+    res.json({ success: true, recipient: recipientObj });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -54,10 +66,14 @@ exports.saveRecipient = async (req, res) => {
 exports.clearRecipient = async (req, res) => {
   try {
     const { userId } = req.query;
+    if (!userId) {
+      return res.json({ success: true, message: 'No recipient to clear' });
+    }
+
     if (supabase && isValidUUID(userId)) {
       await supabase.from('recipients').delete().eq('user_id', userId);
     } else {
-      mockStore.recipient = null;
+      delete mockStore.recipients[userId];
     }
     res.json({ success: true, message: 'Recipient cleared' });
   } catch (err) {

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Send, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Clock, CheckCircle } from 'lucide-react';
 import { Card, Button, Input, TextArea } from '../common';
 import { reportsService } from '../../api/reportsService';
-import { formatReportWhatsAppMessage, openWhatsAppDirectly } from '../../utils/formatters';
+import { formatReportWhatsAppMessage } from '../../utils/formatters';
 
 export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, onOpenWhatsAppModal }) => {
-  const [reportAuthorName, setReportAuthorName] = useState(profile?.name || user?.name || 'Yuvaraj');
-  const [reportAuthorRole, setReportAuthorRole] = useState(profile?.role || user?.role || 'Senior Engineer AI & Automation');
+  const [reportAuthorName, setReportAuthorName] = useState(profile?.name || user?.name || '');
+  const [reportAuthorRole, setReportAuthorRole] = useState(profile?.role || user?.role || '');
   const [reportType, setReportType] = useState('Daily Shift Report');
   const [shiftName, setShiftName] = useState('Flexible / General Hours (Optional)');
   const [reportDate, setReportDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -16,8 +16,17 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
   });
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tagsInput, setTagsInput] = useState('production, maintenance');
+  const [tagsInput, setTagsInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successBanner, setSuccessBanner] = useState('');
+
+  // Sync author name & role when user or profile changes
+  useEffect(() => {
+    const name = profile?.name || user?.name || user?.email?.split('@')[0] || '';
+    const role = profile?.role || user?.role || 'Team Member';
+    setReportAuthorName(name);
+    setReportAuthorRole(role);
+  }, [user, profile]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,12 +35,13 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
     }
 
     setLoading(true);
+    setSuccessBanner('');
     try {
       const tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
       const payload = {
         userId: user?.id || 'demo-user-id',
-        author_name: reportAuthorName.trim() || profile?.name || 'Yuvaraj',
-        author_role: reportAuthorRole.trim() || profile?.role || 'Senior Engineer AI & Automation',
+        author_name: reportAuthorName.trim() || profile?.name || user?.name || 'Engineer',
+        author_role: reportAuthorRole.trim() || profile?.role || user?.role || 'Team Member',
         type: reportType,
         shift: shiftName,
         date: reportDate,
@@ -43,28 +53,11 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
 
       const data = await reportsService.submitReport(payload);
       if (data.success) {
-        const reportData = data.report || { id: `rep-${Date.now()}`, ...payload };
-        const formattedText = formatReportWhatsAppMessage(reportData, recipient?.name, {
-          name: reportAuthorName.trim() || profile?.name,
-          role: reportAuthorRole.trim() || profile?.role
-        });
-
-        // Open WhatsApp Modal
-        onOpenWhatsAppModal({
-          isOpen: true,
-          report: reportData,
-          text: formattedText,
-          recipientName: recipient?.name || 'Recipient',
-          phoneNumber: recipient?.phone_number || ''
-        });
-
-        // Launch WhatsApp directly
-        if (recipient?.phone_number) {
-          openWhatsAppDirectly(recipient.phone_number, formattedText);
-        }
-
         setTitle('');
         setContent('');
+        setTagsInput('');
+        setSuccessBanner('✅ Report successfully submitted and dispatched to WhatsApp recipient!');
+        setTimeout(() => setSuccessBanner(''), 6000);
         onReportSubmitted();
       } else {
         alert(`Error submitting report: ${data.error}`);
@@ -94,6 +87,13 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
           </span>
         )}
       </div>
+
+      {successBanner && (
+        <div className="mb-4 p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          {successBanner}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Dynamic Author Name & Role (Editable Per Report) */}

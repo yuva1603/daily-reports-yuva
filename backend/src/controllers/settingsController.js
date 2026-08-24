@@ -4,17 +4,32 @@ const { scheduleUserReminders } = require('../services/reminderScheduler');
 exports.getSettings = async (req, res) => {
   try {
     const { userId } = req.query;
+    const defaultSettings = {
+      shift_start: '09:00',
+      shift_end: '18:00',
+      reminder_minutes_before: 30,
+      timezone: 'Asia/Kolkata',
+      enabled: false
+    };
+
+    if (!userId) {
+      return res.json(defaultSettings);
+    }
+
     if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase
         .from('shift_settings')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return res.json(data || null);
+      return res.json(data || defaultSettings);
     }
-    res.json(mockStore.shift_settings);
+
+    // In-memory isolated lookup by userId
+    const userSettings = mockStore.shift_settings[userId] || defaultSettings;
+    res.json(userSettings);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -22,30 +37,36 @@ exports.getSettings = async (req, res) => {
 
 exports.saveSettings = async (req, res) => {
   try {
-    const { userId, shift_start, shift_end, reminder_minutes_before, timezone } = req.body;
+    const { userId, shift_start, shift_end, reminder_minutes_before, timezone, enabled } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
     const settingsObj = {
+      user_id: userId,
       shift_start: shift_start || '09:00',
       shift_end: shift_end || '18:00',
       reminder_minutes_before: reminder_minutes_before !== undefined ? Number(reminder_minutes_before) : 30,
       timezone: timezone || 'Asia/Kolkata',
+      enabled: Boolean(enabled),
       updated_at: new Date().toISOString()
     };
 
     if (supabase && isValidUUID(userId)) {
       const { data, error } = await supabase
         .from('shift_settings')
-        .upsert([{ user_id: userId, ...settingsObj }], { onConflict: 'user_id' })
+        .upsert([settingsObj], { onConflict: 'user_id' })
         .select()
         .single();
 
       if (error) throw error;
-      await scheduleUserReminders(userId);
+      if (settingsObj.enabled) await scheduleUserReminders(userId);
       return res.json({ success: true, settings: data });
     }
 
-    mockStore.shift_settings = { user_id: userId || 'demo-user-id', ...settingsObj };
-    await scheduleUserReminders(userId || 'demo-user-id');
-    res.json({ success: true, settings: mockStore.shift_settings });
+    mockStore.shift_settings[userId] = settingsObj;
+    if (settingsObj.enabled) await scheduleUserReminders(userId);
+    res.json({ success: true, settings: settingsObj });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Trash2, Smartphone } from 'lucide-react';
 import { Card, Button, Input } from '../common';
 import { recipientService } from '../../api/recipientService';
@@ -8,6 +8,11 @@ export const RecipientTab = ({ recipient, user, onRecipientUpdated }) => {
   const [phone, setPhone] = useState(recipient?.phone_number || '');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setName(recipient?.name || '');
+    setPhone(recipient?.phone_number || '');
+  }, [recipient]);
 
   const handleSave = async (e) => {
     e.preventDefault();
