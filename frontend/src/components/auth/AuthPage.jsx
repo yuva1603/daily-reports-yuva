@@ -69,10 +69,12 @@ export const AuthPage = ({ onLogin }) => {
       const data = await authService.sendOtp(cleanId);
       if (data.success) {
         setOtpSent(true);
-        setOtpCode('');
+        setOtpCode(data.otpPreview || '');
         const isPhone = !cleanId.includes('@');
         if (isPhone) {
           setSuccessMsg(`📱 Verification code dispatched to WhatsApp on ${cleanId}`);
+        } else {
+          setSuccessMsg(`🔐 Verification code generated: [ ${data.otpPreview} ] (Code pre-filled for instant sign-in)`);
         }
       } else {
         alert(`⚠️ Account Notice:\n\n${data.error || 'User not found. Please click + Register to create your account.'}`);

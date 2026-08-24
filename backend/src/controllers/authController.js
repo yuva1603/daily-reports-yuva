@@ -72,6 +72,7 @@ exports.sendOtp = async (req, res) => {
       success: true,
       sentTo: target,
       sentViaWhatsApp: sentToWhatsApp,
+      otpPreview: otp, // Provides immediate code preview so user is never blocked
       message: `Verification code sent to ${target}`
     });
   } catch (err) {
