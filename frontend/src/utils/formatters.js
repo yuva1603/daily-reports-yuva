@@ -11,11 +11,15 @@ export function formatReportWhatsAppMessage(report, recipientName, user) {
   const reportDate = report?.date || new Date().toISOString().split('T')[0];
   const reportTime = report?.time || new Date().toTimeString().slice(0, 5);
 
+  const shiftText = report?.shift && !report.shift.toLowerCase().includes('flexible')
+    ? `\n⏱️ *Shift:* ${report.shift}`
+    : '';
+
   return `📊 *${reportType.toUpperCase()}*\n\n` +
     `👤 *Name:* ${authorName}\n` +
     `💼 *Role:* ${authorRole}\n` +
     `📅 *Date:* ${reportDate}\n` +
-    `⏰ *Time:* ${reportTime}${tagsText}\n\n` +
+    `⏰ *Time:* ${reportTime}${shiftText}${tagsText}\n\n` +
     `📌 *Title:* ${report?.title || 'Daily Summary'}\n\n` +
     `📝 *Details & Notes:*\n${report?.content || ''}\n\n` +
     `---\nAutomated via Daily Reports Platform`;

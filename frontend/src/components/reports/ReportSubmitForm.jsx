@@ -8,6 +8,7 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
   const [reportAuthorName, setReportAuthorName] = useState(profile?.name || user?.name || 'Yuvaraj');
   const [reportAuthorRole, setReportAuthorRole] = useState(profile?.role || user?.role || 'Senior Engineer AI & Automation');
   const [reportType, setReportType] = useState('Daily Shift Report');
+  const [shiftName, setShiftName] = useState('Flexible / General Hours (Optional)');
   const [reportDate, setReportDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [reportTime, setReportTime] = useState(() => {
     const now = new Date();
@@ -32,6 +33,7 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
         author_name: reportAuthorName.trim() || profile?.name || 'Yuvaraj',
         author_role: reportAuthorRole.trim() || profile?.role || 'Senior Engineer AI & Automation',
         type: reportType,
+        shift: shiftName,
         date: reportDate,
         time: reportTime,
         title: title.trim(),
@@ -111,25 +113,44 @@ export const ReportSubmitForm = ({ user, profile, recipient, onReportSubmitted, 
           />
         </div>
 
-        {/* Report Type */}
-        <div className="space-y-1.5">
-          <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-            Report Type
-          </label>
-          <select
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500"
-          >
-            <option value="Daily Shift Report">Daily Shift Report</option>
-            <option value="Production Report">Production Report</option>
-            <option value="Maintenance Report">Maintenance Report</option>
-            <option value="Quality & Inspection Report">Quality & Inspection Report</option>
-            <option value="Handover Summary">Handover Summary</option>
-            <option value="Incident & Blocker Report">Incident & Blocker Report</option>
-            <option value="End of Day Summary">End of Day Summary</option>
-            <option value="General Task Update">General Task Update</option>
-          </select>
+        {/* Report Type & Optional Shift Selection */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Report Category
+            </label>
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500"
+            >
+              <option value="Daily Shift Report">Daily Shift Report</option>
+              <option value="Production Report">Production Report</option>
+              <option value="Maintenance Report">Maintenance Report</option>
+              <option value="Quality & Inspection Report">Quality & Inspection Report</option>
+              <option value="Handover Summary">Handover Summary</option>
+              <option value="Incident & Blocker Report">Incident & Blocker Report</option>
+              <option value="End of Day Summary">End of Day Summary</option>
+              <option value="General Task Update">General Task Update</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Shift Window <span className="text-amber-400 font-normal lowercase">(optional)</span>
+            </label>
+            <select
+              value={shiftName}
+              onChange={(e) => setShiftName(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-amber-500"
+            >
+              <option value="Flexible / General Hours (Optional)">Flexible / General Hours (No Shift)</option>
+              <option value="Morning Shift (1st Shift)">Morning Shift (1st Shift)</option>
+              <option value="Afternoon Shift (2nd Shift)">Afternoon Shift (2nd Shift)</option>
+              <option value="Night Shift (3rd Shift)">Night Shift (3rd Shift)</option>
+              <option value="General Day Shift (09:00 - 18:00)">General Day Shift (09:00 - 18:00)</option>
+            </select>
+          </div>
         </div>
 
         {/* Date & Time Grid */}

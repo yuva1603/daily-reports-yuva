@@ -162,9 +162,11 @@ export default function App() {
               <Clock className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">Shift Timing</p>
-              <h3 className="text-base font-bold text-white">
-                {settings.shift_start} - {settings.shift_end}
+              <p className="text-xs text-slate-400 font-medium">Shift Timing (Optional)</p>
+              <h3 className="text-sm font-bold text-white">
+                {settings.enabled
+                  ? `${settings.shift_start} - ${settings.shift_end}`
+                  : 'Flexible / General Hours'}
               </h3>
             </div>
           </Card>
