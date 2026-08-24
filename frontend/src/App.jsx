@@ -245,7 +245,18 @@ export default function App() {
           )}
 
           {activeTab === 'admin' && (
-            <AdminDashboardTab />
+            <AdminDashboardTab
+              onLoginAsUser={(targetUser) => {
+                setUser({
+                  id: targetUser.id,
+                  name: targetUser.name,
+                  email: targetUser.email,
+                  role: targetUser.role,
+                  is_admin: targetUser.is_admin
+                });
+                setActiveTab('reports');
+              }}
+            />
           )}
         </main>
       </div>

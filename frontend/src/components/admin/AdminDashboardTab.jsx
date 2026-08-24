@@ -3,7 +3,7 @@ import { BarChart3, Users, FileText, TrendingUp, RefreshCw, Clock } from 'lucide
 import { Card, Button, Badge } from '../common';
 import { reportsService } from '../../api/reportsService';
 
-export const AdminDashboardTab = () => {
+export const AdminDashboardTab = ({ onLoginAsUser }) => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalReports: 0,
@@ -74,10 +74,15 @@ export const AdminDashboardTab = () => {
       </div>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-amber-400" />
-          Registered Team Members & Activity
-        </h2>
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-amber-400" />
+            Registered Team Members & Supabase Credentials Roster
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Admin inspection view: Monitor active users, credentials, and access accounts for report troubleshooting.
+          </p>
+        </div>
         <Button onClick={loadStats} disabled={loading} variant="secondary" size="sm" className="gap-1">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh Stats
@@ -93,13 +98,16 @@ export const AdminDashboardTab = () => {
               <th className="py-3.5 px-4 font-semibold">Designation / Role</th>
               <th className="py-3.5 px-4 font-semibold">Email</th>
               <th className="py-3.5 px-4 font-semibold text-center">Reports Filed</th>
-              <th className="py-3.5 px-4 font-semibold text-right">Account Type</th>
+              <th className="py-3.5 px-4 font-semibold text-right">Admin Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
             {stats.users.map((u, i) => (
               <tr key={u.id || i} className="hover:bg-slate-900/50 transition">
-                <td className="py-3.5 px-4 font-bold text-white">{u.name}</td>
+                <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2">
+                  <span>{u.name}</span>
+                  {u.is_admin && <Badge variant="amber">Admin</Badge>}
+                </td>
                 <td className="py-3.5 px-4 text-amber-400 font-medium">{u.role || 'Senior Engineer AI & Automation'}</td>
                 <td className="py-3.5 px-4 font-mono text-slate-400">{u.email}</td>
                 <td className="py-3.5 px-4 text-center font-bold text-emerald-400">
@@ -108,9 +116,15 @@ export const AdminDashboardTab = () => {
                   </span>
                 </td>
                 <td className="py-3.5 px-4 text-right">
-                  <Badge variant={u.is_admin ? 'amber' : 'neutral'}>
-                    {u.is_admin ? 'Admin' : 'Engineer'}
-                  </Badge>
+                  {onLoginAsUser && (
+                    <button
+                      onClick={() => onLoginAsUser(u)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-semibold transition cursor-pointer"
+                      title="Inspect user reports and troubleshoot"
+                    >
+                      🔑 Login / Inspect
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

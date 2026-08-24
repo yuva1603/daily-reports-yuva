@@ -5,6 +5,22 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- 0. User Credentials & Registration Details Table (Stores user, name, email, password, and role)
+CREATE TABLE IF NOT EXISTS public.user_credentials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT,
+  name TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'Senior Engineer AI & Automation',
+  phone_number TEXT,
+  is_admin BOOLEAN DEFAULT false,
+  last_login_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 0. Profiles Table (User details & custom usernames)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

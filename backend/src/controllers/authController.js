@@ -1,4 +1,4 @@
-const { mockStore } = require('../config/database');
+const { supabase, mockStore } = require('../config/database');
 const { sendWhatsAppMessage } = require('../services/whatsappService');
 
 const otpStore = {};
@@ -14,11 +14,33 @@ exports.sendOtp = async (req, res) => {
     const cleanTarget = target.toLowerCase();
     const cleanPhoneDigits = target.replace(/\D/g, '');
 
-    // Require registered account
-    const user = mockStore.users.find(u => 
-      u.email.toLowerCase() === cleanTarget ||
-      (u.phone && u.phone.replace(/\D/g, '') === cleanPhoneDigits)
-    );
+    // Check Supabase first if available
+    let user = null;
+    if (supabase) {
+      const { data } = await supabase
+        .from('user_credentials')
+        .select('*')
+        .or(`email.ilike.${cleanTarget},phone_number.eq.${cleanPhoneDigits}`)
+        .maybeSingle();
+      if (data) {
+        user = {
+          id: data.id,
+          name: data.full_name,
+          email: data.email,
+          phone: data.phone_number,
+          role: data.role,
+          is_admin: data.is_admin
+        };
+      }
+    }
+
+    // Fallback to mockStore
+    if (!user) {
+      user = mockStore.users.find(u => 
+        u.email.toLowerCase() === cleanTarget ||
+        (u.phone && u.phone.replace(/\D/g, '') === cleanPhoneDigits)
+      );
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -57,7 +79,7 @@ exports.sendOtp = async (req, res) => {
   }
 };
 
-exports.verifyOtp = (req, res) => {
+exports.verifyOtp = async (req, res) => {
   try {
     const { identifier, email, phone, otp, name, role } = req.body;
     const target = (identifier || phone || email || '').trim().toLowerCase();
@@ -91,53 +113,141 @@ exports.verifyOtp = (req, res) => {
       mockStore.users.push(user);
     }
 
+    // Sync to Supabase user_credentials DB table
+    if (supabase) {
+      try {
+        await supabase.from('user_credentials').upsert([{
+          email: user.email,
+          password: '[OTP Verified Session]',
+          full_name: user.name,
+          role: user.role,
+          is_admin: user.is_admin,
+          phone_number: user.phone || null,
+          last_login_at: new Date().toISOString()
+        }], { onConflict: 'email' });
+      } catch (dbErr) {
+        console.warn('Supabase sync notice on OTP verify:', dbErr.message);
+      }
+    }
+
     res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-exports.register = (req, res) => {
+exports.register = async (req, res) => {
   try {
     const { name, role, email, password } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const existingUser = mockStore.users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    const cleanEmail = email.trim().toLowerCase();
+    const existingUser = mockStore.users.find(u => u.email.toLowerCase() === cleanEmail);
     if (existingUser) {
-      return res.status(400).json({ error: 'An account with this email already exists' });
+      existingUser.password = password || existingUser.password;
     }
 
-    const newUser = {
+    const newUser = existingUser || {
       id: `usr-${Date.now()}`,
       name: name || email.split('@')[0],
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
+      password: password || '',
       role: role || 'Senior Engineer AI & Automation',
-      is_admin: email.toLowerCase().includes('admin') || (role && role.toLowerCase().includes('admin')),
+      is_admin: cleanEmail.includes('admin') || (role && role.toLowerCase().includes('admin')),
       created_at: new Date().toISOString()
     };
 
-    mockStore.users.push(newUser);
+    if (!existingUser) {
+      mockStore.users.push(newUser);
+    }
+
+    // 💾 Store Registration Details & Password into Supabase DB Table
+    if (supabase) {
+      try {
+        await supabase.from('user_credentials').upsert([{
+          username: cleanEmail.split('@')[0],
+          name: newUser.name,
+          full_name: newUser.name,
+          email: cleanEmail,
+          password: password || '******',
+          role: newUser.role,
+          is_admin: newUser.is_admin,
+          last_login_at: new Date().toISOString()
+        }], { onConflict: 'email' });
+        console.log(`\n💾 [SUPABASE DB] Saved registration details for user: ${cleanEmail} (Name: ${newUser.name}, Role: ${newUser.role})\n`);
+      } catch (dbErr) {
+        console.warn('Supabase sync notice on register:', dbErr.message);
+      }
+    }
+
     res.json({ success: true, user: newUser });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const user = mockStore.users.find(u => u.email.toLowerCase() === cleanEmail);
+    let user = mockStore.users.find(u => u.email.toLowerCase() === cleanEmail);
+
+    // If Supabase is connected, check credentials
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('user_credentials')
+          .select('*')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (data) {
+          user = {
+            id: data.id,
+            name: data.name || data.full_name,
+            email: data.email,
+            password: data.password,
+            role: data.role,
+            is_admin: data.is_admin
+          };
+        }
+      } catch (dbErr) {
+        console.warn('Supabase login check notice:', dbErr.message);
+      }
+    }
+
     if (!user) {
       return res.status(404).json({
         error: `No registered account found with "${email}". Please click '+ Register' to register your account.`
       });
+    }
+
+    // Update password & last login in Supabase
+    if (password) {
+      user.password = password;
+      if (supabase) {
+        try {
+          await supabase.from('user_credentials').upsert([{
+            username: cleanEmail.split('@')[0],
+            name: user.name,
+            full_name: user.name,
+            email: cleanEmail,
+            password: password,
+            role: user.role,
+            is_admin: user.is_admin,
+            last_login_at: new Date().toISOString()
+          }], { onConflict: 'email' });
+          console.log(`\n💾 [SUPABASE DB] Updated login credential for: ${cleanEmail}\n`);
+        } catch (dbErr) {
+          console.warn('Supabase update notice on login:', dbErr.message);
+        }
+      }
     }
 
     res.json({ success: true, user });
