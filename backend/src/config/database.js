@@ -3,13 +3,16 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const hasSupabaseKeys = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const hasSupabaseKeys = Boolean(process.env.SUPABASE_URL && supabaseKey);
 const supabase = hasSupabaseKeys
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(process.env.SUPABASE_URL, supabaseKey)
   : null;
 
 if (!hasSupabaseKeys) {
-  console.warn('⚠️  Supabase environment variables missing. Running in DEMO/MOCK storage mode.');
+  console.warn('⚠️  Supabase API key missing in .env. Running in DEMO/MOCK storage mode.');
+} else {
+  console.log('✅ Connected to Supabase Project:', process.env.SUPABASE_URL);
 }
 
 const mockStore = {
