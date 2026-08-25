@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "mcp-remote": "^0.2.1"
+  }
+}
