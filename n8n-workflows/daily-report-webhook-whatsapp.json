@@ -1,5 +1,5 @@
 {
-  "name": "Daily Report Webhook to WhatsApp Workflow",
+  "name": "Daily Report Webhook to WhatsApp Business Cloud Workflow",
   "nodes": [
     {
       "parameters": {
@@ -33,26 +33,31 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://daily-reports-yuva.onrender.com/api/whatsapp/send",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.recipientPhone, message: $json.formattedMessage }) }}",
-        "options": {}
+        "operation": "send",
+        "phoneNumberId": "={{ $json.phoneNumberId || 'YOUR_PHONE_NUMBER_ID' }}",
+        "recipientPhoneNumber": "={{ $json.recipientPhone }}",
+        "textBody": "={{ $json.formattedMessage }}",
+        "additionalFields": {}
       },
       "id": "3",
-      "name": "Send WhatsApp Message (Backend API)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "WhatsApp Business Cloud",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
       "position": [
         720,
         300
-      ]
+      ],
+      "credentials": {
+        "whatsAppCloudApi": {
+          "id": "whatsAppCloudApiCredential",
+          "name": "WhatsApp Business Cloud account"
+        }
+      }
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"status\": \"dispatched\",\n  \"employee\": \"{{ $('Format Daily Report Text').item.json.employeeName }}\",\n  \"date\": \"{{ $('Format Daily Report Text').item.json.date }}\",\n  \"whatsapp\": {{ JSON.stringify($json) }}\n}",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"dispatched_via_whatsapp_cloud_api\",\n  \"employee\": \"{{ $('Format Daily Report Text').item.json.employeeName }}\",\n  \"date\": \"{{ $('Format Daily Report Text').item.json.date }}\",\n  \"recipient\": \"{{ $('Format Daily Report Text').item.json.recipientPhone }}\",\n  \"whatsappResponse\": {{ JSON.stringify($json) }}\n}",
         "options": {}
       },
       "id": "4",
@@ -81,14 +86,14 @@
       "main": [
         [
           {
-            "node": "Send WhatsApp Message (Backend API)",
+            "node": "WhatsApp Business Cloud",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send WhatsApp Message (Backend API)": {
+    "WhatsApp Business Cloud": {
       "main": [
         [
           {
