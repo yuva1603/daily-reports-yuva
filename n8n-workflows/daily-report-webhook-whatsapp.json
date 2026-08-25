@@ -1,0 +1,107 @@
+{
+  "name": "Daily Report Webhook to WhatsApp Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ce875611-0f59-40da-8cc0-b3fbb54d6921",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "n8n Webhook Trigger (Receive Daily Report JSON)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "ce875611-0f59-40da-8cc0-b3fbb54d6921"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract structured report data from webhook payload\nconst body = $json.body || $json;\n\nconst employeeName = body.employeeName || body.author_name || 'Employee';\nconst date = body.date || new Date().toISOString().split('T')[0];\nconst completed = (body.completed || '- None').trim();\nconst pending = (body.pending || '- None').trim();\nconst issues = (body.issues || 'None').trim();\nconst tomorrow = (body.tomorrow || '- None').trim();\nconst recipientPhone = body.recipientPhone || '917358859792';\nconst recipientName = body.recipientName || 'Manager';\n\n// Format WhatsApp Message matching exact layout\nconst formattedMessage = `Daily Report\\n\\n` +\n  `Employee: ${employeeName}\\n` +\n  `Date: ${date}\\n\\n` +\n  `Completed:\\n${completed}\\n\\n` +\n  `Pending:\\n${pending}\\n\\n` +\n  `Issues:\\n${issues}\\n\\n` +\n  `Tomorrow:\\n${tomorrow}`;\n\nreturn {\n  employeeName,\n  date,\n  completed,\n  pending,\n  issues,\n  tomorrow,\n  recipientPhone,\n  recipientName,\n  formattedMessage\n};"
+      },
+      "id": "2",
+      "name": "Format Daily Report Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://daily-reports-yuva.onrender.com/api/whatsapp/send",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.recipientPhone, message: $json.formattedMessage }) }}",
+        "options": {}
+      },
+      "id": "3",
+      "name": "Send WhatsApp Message (Backend API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"dispatched\",\n  \"employee\": \"{{ $('Format Daily Report Text').item.json.employeeName }}\",\n  \"date\": \"{{ $('Format Daily Report Text').item.json.date }}\",\n  \"whatsapp\": {{ JSON.stringify($json) }}\n}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "n8n Webhook Trigger (Receive Daily Report JSON)": {
+      "main": [
+        [
+          {
+            "node": "Format Daily Report Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Daily Report Text": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Message (Backend API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Message (Backend API)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

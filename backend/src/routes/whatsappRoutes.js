@@ -29,4 +29,23 @@ router.get('/qr', (req, res) => {
   }
 });
 
+// Endpoint for n8n or external services to send WhatsApp message directly
+router.post('/send', async (req, res) => {
+  try {
+    const { to, phone, message, text } = req.body;
+    const recipientPhone = to || phone;
+    const messageContent = message || text;
+
+    if (!recipientPhone || !messageContent) {
+      return res.status(400).json({ error: 'Recipient phone number and message are required' });
+    }
+
+    const result = await whatsappService.sendWhatsAppMessage(recipientPhone, messageContent);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
+

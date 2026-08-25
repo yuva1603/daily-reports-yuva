@@ -39,6 +39,10 @@ export const Input = ({ label, placeholder, value, onChange, type = 'text', hint
       value={value}
       onChange={onChange}
       disabled={disabled}
+      data-gramm="false"
+      data-gramm_editor="false"
+      data-enable-grammarly="false"
+      spellCheck="false"
       autoComplete={autoComplete || (type === 'password' ? 'current-password' : type === 'email' ? 'username' : 'on')}
       className={`w-full px-4 py-2.5 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none text-sm transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     />
@@ -58,6 +62,10 @@ export const PasswordInput = ({ label, placeholder, value, onChange, hint = '', 
           value={value}
           onChange={onChange}
           disabled={disabled}
+          data-gramm="false"
+          data-gramm_editor="false"
+          data-enable-grammarly="false"
+          spellCheck="false"
           autoComplete={autoComplete || 'current-password'}
           className={`w-full px-4 py-2.5 pr-11 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none text-sm transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
         />
@@ -84,6 +92,10 @@ export const TextArea = ({ label, placeholder, value, onChange, rows = 4, classN
       value={value}
       onChange={onChange}
       rows={rows}
+      data-gramm="false"
+      data-gramm_editor="false"
+      data-enable-grammarly="false"
+      spellCheck="false"
       className={`w-full px-4 py-2.5 rounded-xl glass-input text-slate-100 placeholder-slate-500 focus:outline-none text-sm transition ${className}`}
     />
   </div>

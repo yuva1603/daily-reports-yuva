@@ -1,25 +1,37 @@
 // Utility helpers for formatting messages and validating inputs
 
 export function formatReportWhatsAppMessage(report, recipientName, user) {
-  const authorName = report?.author_name || user?.name || 'Yuvaraj';
+  const authorName = report?.employeeName || report?.author_name || user?.name || 'Yuvaraj';
+  const reportDate = report?.date || new Date().toISOString().split('T')[0];
+
+  // If structured fields exist, use the exact clean format
+  if (report?.completed !== undefined || report?.pending !== undefined || report?.issues !== undefined || report?.tomorrow !== undefined) {
+    const completed = (report.completed || '').trim() || '- None';
+    const pending = (report.pending || '').trim() || '- None';
+    const issues = (report.issues || '').trim() || 'None';
+    const tomorrow = (report.tomorrow || '').trim() || '- None';
+
+    return `Daily Report\n\n` +
+      `Employee: ${authorName}\n` +
+      `Date: ${reportDate}\n\n` +
+      `Completed:\n${completed}\n\n` +
+      `Pending:\n${pending}\n\n` +
+      `Issues:\n${issues}\n\n` +
+      `Tomorrow:\n${tomorrow}`;
+  }
+
   const authorRole = report?.author_role || user?.role || 'Senior Engineer AI & Automation';
   const reportType = report?.type || 'Daily Shift Report';
   const tagsText = Array.isArray(report?.tags) && report.tags.length > 0
     ? `\n🏷️ *Tags:* ${report.tags.join(', ')}`
     : '';
-
-  const reportDate = report?.date || new Date().toISOString().split('T')[0];
   const reportTime = report?.time || new Date().toTimeString().slice(0, 5);
-
-  const shiftText = report?.shift && !report.shift.toLowerCase().includes('flexible')
-    ? `\n⏱️ *Shift:* ${report.shift}`
-    : '';
 
   return `📊 *${reportType.toUpperCase()}*\n\n` +
     `👤 *Name:* ${authorName}\n` +
     `💼 *Role:* ${authorRole}\n` +
     `📅 *Date:* ${reportDate}\n` +
-    `⏰ *Time:* ${reportTime}${shiftText}${tagsText}\n\n` +
+    `⏰ *Time:* ${reportTime}${tagsText}\n\n` +
     `📌 *Title:* ${report?.title || 'Daily Summary'}\n\n` +
     `📝 *Details & Notes:*\n${report?.content || ''}\n\n` +
     `---\nAutomated via Daily Reports Platform`;

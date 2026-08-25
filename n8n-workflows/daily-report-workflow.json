@@ -13,16 +13,19 @@
         }
       },
       "id": "1",
-      "name": "Shift Reminder Trigger (Daily at 5:30 PM)",
+      "name": "Shift Reminder Trigger (Daily at 4:30 PM)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [250, 300],
+      "position": [
+        250,
+        300
+      ],
       "notes": "Fires daily at 5:30 PM IST. Adjust cron to match your shift_end time."
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:3000/api/reminders/send",
+        "url": "=https://daily-reports-yuva.onrender.com/api/reminders/send",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -38,7 +41,10 @@
       "name": "Trigger Shift Reminder (via Backend)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 300],
+      "position": [
+        500,
+        300
+      ],
       "notes": "Calls our Node.js backend which sends WhatsApp via whatsapp-web.js (personal account, 100% free)"
     },
     {
@@ -56,12 +62,15 @@
       "name": "Check Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [750, 300]
+      "position": [
+        750,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:3000/api/reports/submit",
+        "url": "=https://daily-reports-yuva.onrender.com/api/reports/submit",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -85,7 +94,10 @@
       "name": "Log to Backend (Optional)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1000, 200],
+      "position": [
+        1000,
+        200
+      ],
       "notes": "Optionally log the reminder dispatch as a report entry"
     },
     {
@@ -96,7 +108,10 @@
       "name": "Error Trigger",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
-      "position": [750, 500]
+      "position": [
+        750,
+        500
+      ]
     },
     {
       "parameters": {
@@ -106,7 +121,10 @@
       "name": "Log Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1000, 500]
+      "position": [
+        1000,
+        500
+      ]
     }
   ],
   "connections": {

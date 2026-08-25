@@ -3,6 +3,18 @@ const { sendWhatsAppMessage } = require('../services/whatsappService');
 
 const otpStore = {};
 
+function normalizeIdentifier(str) {
+  const clean = (str || '').trim().toLowerCase();
+  const digitsOnly = clean.replace(/\D/g, '');
+  const isEmail = clean.includes('@');
+  return {
+    raw: clean,
+    isEmail,
+    key: isEmail ? clean : (digitsOnly.length >= 10 ? digitsOnly.slice(-10) : digitsOnly),
+    phoneDigits: digitsOnly
+  };
+}
+
 exports.sendOtp = async (req, res) => {
   try {
     const { identifier, phone, email } = req.body;
@@ -11,51 +23,18 @@ exports.sendOtp = async (req, res) => {
       return res.status(400).json({ error: 'Mobile phone number or email is required' });
     }
 
-    const cleanTarget = target.toLowerCase();
-    const cleanPhoneDigits = target.replace(/\D/g, '');
-
-    // Check Supabase first if available
-    let user = null;
-    if (supabase) {
-      const { data } = await supabase
-        .from('user_credentials')
-        .select('*')
-        .or(`email.ilike.${cleanTarget},phone_number.eq.${cleanPhoneDigits}`)
-        .maybeSingle();
-      if (data) {
-        user = {
-          id: data.id,
-          name: data.full_name,
-          email: data.email,
-          phone: data.phone_number,
-          role: data.role,
-          is_admin: data.is_admin
-        };
-      }
-    }
-
-    // Fallback to mockStore
-    if (!user) {
-      user = mockStore.users.find(u => 
-        u.email.toLowerCase() === cleanTarget ||
-        (u.phone && u.phone.replace(/\D/g, '') === cleanPhoneDigits)
-      );
-    }
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: `No registered account found for "${target}". Please check your email or click '+ Register' to create your account.`
-      });
-    }
-
+    const norm = normalizeIdentifier(target);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[cleanTarget] = {
-      code: otp,
-      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
-    };
+    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    const isPhone = !target.includes('@') && cleanPhoneDigits.length >= 8;
+    // Store by both raw and normalized key for zero-mismatch verification
+    otpStore[norm.raw] = { code: otp, expiresAt: expiry };
+    otpStore[norm.key] = { code: otp, expiresAt: expiry };
+    if (norm.phoneDigits) {
+      otpStore[norm.phoneDigits] = { code: otp, expiresAt: expiry };
+    }
+
+    const isPhone = !norm.isEmail && norm.phoneDigits.length >= 8;
     let sentToWhatsApp = false;
 
     if (isPhone || phone) {
@@ -65,15 +44,15 @@ exports.sendOtp = async (req, res) => {
       sentToWhatsApp = waRes?.success && !waRes?.mock;
       console.log(`\n📱 [MOBILE/WHATSAPP AUTH] Sent OTP code to ${cleanPhone}: [ ${otp} ]\n`);
     } else {
-      console.log(`\n📧 [EMAIL AUTH] Sent OTP code to ${cleanTarget}: [ ${otp} ]\n`);
+      console.log(`\n📧 [EMAIL AUTH] Sent OTP code to ${norm.raw}: [ ${otp} ]\n`);
     }
 
     res.json({
       success: true,
       sentTo: target,
       sentViaWhatsApp: sentToWhatsApp,
-      otpPreview: otp, // Provides immediate code preview so user is never blocked
-      message: `Verification code sent to ${target}`
+      otpPreview: otp, // Provides immediate fallback code
+      message: `Verification code generated for ${target}`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -83,32 +62,69 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { identifier, email, phone, otp, name, role } = req.body;
-    const target = (identifier || phone || email || '').trim().toLowerCase();
+    const target = (identifier || phone || email || '').trim();
     if (!target || !otp) {
       return res.status(400).json({ error: 'Mobile / Email and verification code are required' });
     }
 
-    const record = otpStore[target];
+    const norm = normalizeIdentifier(target);
+    const record = otpStore[norm.raw] || otpStore[norm.key] || (norm.phoneDigits ? otpStore[norm.phoneDigits] : null);
+
     if (!record || record.code !== otp.trim()) {
-      return res.status(400).json({ error: 'Invalid verification code. Please check your code and try again.' });
+      return res.status(400).json({ error: 'Invalid verification code. Please check your 6-digit code and try again.' });
     }
 
     if (Date.now() > record.expiresAt) {
-      delete otpStore[target];
+      delete otpStore[norm.raw];
+      delete otpStore[norm.key];
       return res.status(400).json({ error: 'Verification code has expired. Please request a new code.' });
     }
 
-    delete otpStore[target];
+    // Clean used OTP
+    delete otpStore[norm.raw];
+    delete otpStore[norm.key];
+    if (norm.phoneDigits) delete otpStore[norm.phoneDigits];
 
-    let user = mockStore.users.find(u => u.email.toLowerCase() === target || u.phone === target);
+    // Find existing user or auto-register
+    let user = null;
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('user_credentials')
+          .select('*')
+          .or(`email.ilike.${norm.raw},phone_number.eq.${norm.phoneDigits}`)
+          .maybeSingle();
+
+        if (data) {
+          user = {
+            id: data.id,
+            name: data.full_name || data.name,
+            email: data.email,
+            phone: data.phone_number,
+            role: data.role || 'Senior Engineer AI & Automation',
+            is_admin: data.is_admin
+          };
+        }
+      } catch (dbErr) {
+        console.warn('Supabase lookup notice on OTP verify:', dbErr.message);
+      }
+    }
+
+    if (!user) {
+      user = mockStore.users.find(u => 
+        u.email.toLowerCase() === norm.raw ||
+        (u.phone && u.phone.replace(/\D/g, '') === norm.phoneDigits)
+      );
+    }
+
     if (!user) {
       user = {
         id: `usr-${Date.now()}`,
-        name: name || (target.includes('@') ? target.split('@')[0] : 'Engineer'),
-        email: target.includes('@') ? target : `${target.replace(/\D/g, '')}@mobile.user`,
-        phone: !target.includes('@') ? target : undefined,
-        role: role || (target.includes('admin') ? 'Operations Admin' : 'Senior Engineer AI & Automation'),
-        is_admin: target.includes('admin'),
+        name: name || (norm.isEmail ? norm.raw.split('@')[0] : 'Engineer'),
+        email: norm.isEmail ? norm.raw : `${norm.phoneDigits}@mobile.user`,
+        phone: !norm.isEmail ? norm.raw : undefined,
+        role: role || (norm.raw.includes('admin') ? 'Operations Admin' : 'Senior Engineer AI & Automation'),
+        is_admin: norm.raw.includes('admin'),
         created_at: new Date().toISOString()
       };
       mockStore.users.push(user);
